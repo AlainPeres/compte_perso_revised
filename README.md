@@ -10,9 +10,11 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
 - **Synthèse Mensuelle** : Regroupe les transactions par mois et calcule l'évolution du solde.
 - **Support des Accents** : Gestion native du format UTF-8 (BOM) pour une compatibilité parfaite entre les exports bancaires et Excel.
 - **Robustesse** : Gestion des erreurs de permission si le fichier Excel est déjà ouvert.
+- **Statistiques et Catégorisation** : Extrait automatiquement les catégories et génère un onglet **Statistiques** avec les totaux (Débit, Crédit, Net) et les **moyennes mensuelles** par poste.
 - **Export Excel** : Génère un fichier `.xlsx` avec :
-  - Un onglet **Synthèse** pour la vue d'ensemble.
-  - Un onglet par mois pour le détail exhaustif des transactions.
+  - Un onglet **Synthèse** pour le suivi du solde.
+  - Un onglet **Statistiques** pour l'analyse des catégories.
+  - Un onglet par mois pour le détail exhaustif des transactions (incluant la catégorie).
 
 ## Installation
 

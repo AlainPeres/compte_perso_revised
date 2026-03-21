@@ -8,6 +8,20 @@ from openpyxl.styles import Font, Alignment
 # Directory containing the CSV bank statements and for the Excel output
 DATA_DIR = r"D:\Documents\formalités\compte perso"
 
+def get_category(label_parts):
+    """
+    Extracts a category from label parts.
+    Strategy: 
+    - If there are 4+ parts (Type - Label - Code - Cat), the last one is the category.
+    - If there are 3 parts (Type - Label - Cat), the last one is the category.
+    - Otherwise, use the Type (first part) as category.
+    """
+    if not label_parts:
+        return "Divers"
+    if len(label_parts) >= 3:
+        return label_parts[-1]
+    return label_parts[0]
+
 def export_to_excel(transactions, monthly_summary, output_file):
     wb = Workbook()
     
@@ -26,12 +40,57 @@ def export_to_excel(transactions, monthly_summary, output_file):
     for row in monthly_summary:
         ws_summary.append(row)
     
-    # Format columns
+    # Format colonnes
     for row in ws_summary.iter_rows(min_row=2, max_col=3):
         row[1].number_format = '#,##0.00'
         row[2].number_format = '#,##0.00'
 
-    # --- Monthly Sheets ---
+    # --- Onglet Statistiques ---
+    ws_stats = wb.create_sheet(title="Statistiques")
+    ws_stats.append(["Catégorie", "Total Débit", "Total Crédit", "Solde Net", "Moyenne Mens. Débit", "Moyenne Mens. Crédit", "Moyenne Mens. Net"])
+    
+    # Style headers
+    for cell in ws_stats[1]:
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
+        
+    # Calculer le nombre de mois uniques pour les moyennes
+    months_covered = len(set(tx['Month'] for tx in transactions))
+    if months_covered == 0: months_covered = 1 # Avoid division by zero
+    
+    cat_stats = defaultdict(lambda: {'debit': 0.0, 'credit': 0.0})
+    for tx in transactions:
+        cat = tx.get('Categorie', 'Divers')
+        amt = tx['Montant']
+        if amt < 0:
+            cat_stats[cat]['debit'] += abs(amt)
+        else:
+            cat_stats[cat]['credit'] += amt
+            
+    for cat in sorted(cat_stats.keys()):
+        debit = cat_stats[cat]['debit']
+        credit = cat_stats[cat]['credit']
+        net = credit - debit
+        ws_stats.append([
+            cat, 
+            debit, 
+            credit, 
+            net,
+            debit / months_covered,
+            credit / months_covered,
+            net / months_covered
+        ])
+        
+    # Format stats columns
+    for row in ws_stats.iter_rows(min_row=2, max_col=7):
+        for cell in row[1:]:
+            cell.number_format = '#,##0.00'
+            
+    ws_stats.column_dimensions['A'].width = 30
+    for col in ['B', 'C', 'D', 'E', 'F', 'G']:
+        ws_stats.column_dimensions[col].width = 18
+
+    # --- Onglets Mensuels ---
     # Group transactions for easier sheet creation
     by_month = defaultdict(list)
     for tx in transactions:
@@ -39,23 +98,24 @@ def export_to_excel(transactions, monthly_summary, output_file):
         
     for month in sorted(by_month.keys(), reverse=True):
         ws = wb.create_sheet(title=month)
-        ws.append(["Date", "Libellé", "Montant"])
+        ws.append(["Date", "Catégorie", "Libellé", "Montant"])
         
         # Style headers
         for cell in ws[1]:
             cell.font = Font(bold=True)
             
         for tx in by_month[month]:
-            ws.append([tx['Date'], tx['Libelle'], tx['Montant']])
+            ws.append([tx['Date'], tx.get('Categorie', ''), tx['Libelle'], tx['Montant']])
             
         # Format amount column
-        for row in ws.iter_rows(min_row=2, max_col=3):
-            row[2].number_format = '#,##0.00'
+        for row in ws.iter_rows(min_row=2, max_col=4):
+            row[3].number_format = '#,##0.00'
             
-        # Adjust column widths
+        # Ajuster les largeurs de colonnes
         ws.column_dimensions['A'].width = 12
-        ws.column_dimensions['B'].width = 50
-        ws.column_dimensions['C'].width = 15
+        ws.column_dimensions['B'].width = 25
+        ws.column_dimensions['C'].width = 50
+        ws.column_dimensions['D'].width = 15
 
     try:
         wb.save(output_file)
@@ -236,6 +296,7 @@ def read_bank_csv(file_path):
                 'Date': date_str,
                 'Month': month_key,
                 'Libelle': row.get('Libellé'),
+                'Categorie': get_category(row.get('Libellé', '').split(' - ')),
                 'Montant': amount
             }
             transactions.append(transaction)
