@@ -1,73 +1,56 @@
 # Bank Statement Processor (Compte Perso)
 
-Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires au format CSV. Il génère des synthèses mensuelles et exporte les données vers Excel pour un suivi facilité.
+Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires au format CSV. Il fusionne plusieurs fichiers, génère des synthèses mensuelles et exporte les données vers Excel.
 
 ## Fonctionnalités
 
-- **Détection Automatique** : Identifie automatiquement le relevé CSV le plus récent dans le répertoire.
-- **Synthèse Mensuelle** : Regroupe les transactions par mois (Année-Mois).
-- **Suivi du Solde** : Calcule le solde à la fin de chaque mois en remontant à partir du solde actuel extrait du relevé.
+- **Fusion Intelligente (`read_csv_1.py`)** : Combine plusieurs relevés CSV en un seul fichier `fusion.csv`.
+  - **Concaténation des Libellés** : Récupère l'intégralité des informations de l'opération (Type, Libellé détaillé, Catégorie, Nature) pour ne perdre aucune donnée.
+  - **Gestion des Doublons** : En cas de chevauchement, les données du fichier le plus récent sont prioritaires.
+- **Synthèse Mensuelle** : Regroupe les transactions par mois et calcule l'évolution du solde.
+- **Support des Accents** : Gestion native du format UTF-8 (BOM) pour une compatibilité parfaite entre les exports bancaires et Excel.
+- **Robustesse** : Gestion des erreurs de permission si le fichier Excel est déjà ouvert.
 - **Export Excel** : Génère un fichier `.xlsx` avec :
-  - Un onglet **Summary** pour la vue d'ensemble.
-  - Un onglet par mois pour le détail des transactions.
-
-- **Fusion et Dédoublonage (read_csv_1.py)** : Combine plusieurs relevés CSV en un seul fichier `fusion.csv`.
-  - Pour chaque date, les données du fichier le plus récent sont prioritaires.
-  - Évite les doublons en cas de chevauchement entre plusieurs relevés.
+  - Un onglet **Synthèse** pour la vue d'ensemble.
+  - Un onglet par mois pour le détail exhaustif des transactions.
 
 ## Installation
 
-Ce projet utilise [uv](https://github.com/astral-sh/uv) pour la gestion des dépendances et de l'environnement virtuel.
+Ce projet utilise [uv](https://github.com/astral-sh/uv) pour la gestion des dépendances.
 
 1. Installez `uv` si ce n'est pas déjà fait.
 2. Clonez le dépôt ou copiez les fichiers.
-3. Le projet nécessite `openpyxl` pour l'export Excel.
+3. Installez les dépendances : `uv sync`
 
 ## Utilisation
 
-Placez vos fichiers CSV (relevés bancaires) dans le dossier :
-`D:\Documents\formalités\compte perso`
+Placez vos fichiers CSV (relevés bancaires) dans le dossier défini par `DATA_DIR` dans le script (par défaut : `D:\Documents\formalités\compte perso`).
 
-Lancez l'un des deux scripts selon votre besoin :
+Lancez le script de fusion et traitement :
 
-### 1. Traitement du fichier le plus récent uniquement
-```bash
-uv run python read_csv.py
-```
-
-### 2. Fusion de tous les fichiers et traitement (Recommandé)
 ```bash
 uv run python read_csv_1.py
 ```
 
 ### Format du CSV attendu
-Le script est adapté au format des exports "Compte Perso" :
-- **Pas d'en-tête** : Le fichier contient directement les données.
+Le script est optimisé pour les exports bancaires récents :
 - **Séparateur** : `;`
-- **Encodage** : `latin-1`
-- **Structure des colonnes** :
-  - Colonne 0 : Date (JJ/MM/AAAA)
-  - Colonne 1 : Montant (ex: `-12,50`)
-  - Colonne 2 : Type (ex: `Carte`, `Virement`)
-  - Colonne 4 : Libellé
-- **Solde** : Le solde final est extrait automatiquement de la dernière ligne du fichier le plus récent.
+- **Encodage** : `utf-8-sig` (supporté nativement pour les accents).
+- **Structure** : Le script extrait automatiquement la date, le montant et toutes les colonnes de description disponibles.
 
 ## Structure du Projet
 
-- `read_csv.py` : Script pour traiter uniquement le fichier CSV le plus récent.
-- `read_csv_1.py` : Script pour fusionner tous les CSV et les traiter globalement.
-- `pyproject.toml` : Configuration des dépendances.
-- `fusion.csv` : Fichier généré par `read_csv_1.py` regroupant toutes les données.
-- `compte_perso.xlsx` : Fichier final généré dans le dossier `D:\Documents\formalités\compte perso`.
+- `read_csv_1.py` : Script principal de fusion et d'analyse.
+- `pyproject.toml` : Configuration des dépendances (`openpyxl`).
+- `fusion.csv` : Fichier intermédiaire regroupant toutes les données dédoublonnées.
+- `compte_perso.xlsx` : Fichier Excel final généré.
 
 ## Développement
-
-Pour ajouter des fonctionnalités ou exécuter les tests :
 
 ```bash
 # Ajouter une dépendance
 uv add <package>
 
-# Lancer les tests (si implémentés)
+# Lancer les tests
 uv run python -m unittest discover
 ```

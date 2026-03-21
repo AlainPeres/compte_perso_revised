@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from collections import defaultdict
 import csv
 import os
@@ -10,11 +11,11 @@ DATA_DIR = r"D:\Documents\formalités\compte perso"
 def export_to_excel(transactions, monthly_summary, output_file):
     wb = Workbook()
     
-    # --- Summary Sheet ---
+    # --- Onglet Synthèse ---
     ws_summary = wb.active
-    ws_summary.title = "Summary"
+    ws_summary.title = "Synthèse"
     
-    headers = ["Month", "Total Change", "Balance at End"]
+    headers = ["Mois", "Evolution Totale", "Solde Final"]
     ws_summary.append(headers)
     
     # Style headers
@@ -56,8 +57,12 @@ def export_to_excel(transactions, monthly_summary, output_file):
         ws.column_dimensions['B'].width = 50
         ws.column_dimensions['C'].width = 15
 
-    wb.save(output_file)
-    print(f"\nExcel file created: {output_file}")
+    try:
+        wb.save(output_file)
+        print(f"\nFichier Excel créé : {output_file}")
+    except PermissionError:
+        print(f"\nERREUR : Impossible d'enregistrer le fichier '{output_file}'.")
+        print("Veuillez vous assurer que le fichier n'est pas ouvert dans Excel, puis relancez le script.")
 
 def merge_csv_files():
     """
@@ -73,7 +78,7 @@ def merge_csv_files():
     csv_files = [f for f in os.listdir(DATA_DIR) if f.lower().endswith('.csv') and f.lower() != 'fusion.csv']
     
     if not csv_files:
-        print("No CSV files to merge.")
+        print("Aucun fichier CSV à fusionner.")
         return None
 
     # Sort files by modification time (oldest first)
@@ -93,7 +98,7 @@ def merge_csv_files():
     latest_mtime = -1
 
     for info in file_info:
-        with open(info['path'], mode='r', encoding='latin-1') as f:
+        with open(info['path'], mode='r', encoding='utf-8-sig') as f:
             lines = f.readlines()
             if not lines:
                 continue
@@ -117,11 +122,17 @@ def merge_csv_files():
                     continue
                 
                 date = parts[0]
-                amount_str = parts[1] # Keep raw for fusion.csv
-                type_tx = parts[2]
-                label_tx = parts[4] if len(parts) > 4 else ""
+                amount_str = parts[1] # Garder tel quel pour fusion.csv
                 
-                full_label = f"{type_tx} - {label_tx}".strip()
+                # Récupérer toutes les parties du libellé (type + descriptions diverses)
+                # On commence à l'index 2 (Type) et on prend tout ce qui n'est pas vide
+                label_parts = []
+                for i in range(2, len(parts)):
+                    p = parts[i].strip()
+                    if p and p not in label_parts:
+                        label_parts.append(p)
+                
+                full_label = " - ".join(label_parts)
                 tx_tuple = (full_label, amount_str)
                 
                 if date not in date_registry or info['mtime'] > date_registry[date]['mtime']:
@@ -143,22 +154,27 @@ def merge_csv_files():
     sorted_dates = sorted(date_registry.keys(), key=parse_date)
     
     fusion_path = os.path.join(DATA_DIR, "fusion.csv")
-    print(f"Generating fusion.csv in {DATA_DIR}...")
+    print(f"Génération de fusion.csv dans {DATA_DIR}...")
     
-    with open(fusion_path, mode='w', encoding='latin-1', newline='') as f:
-        # Reconstruct a header compatible with read_bank_csv
-        f.write(";;;\n;;;\n;;;\n;;;\n")
-        # Line 5: Balance
-        f.write(f"Solde (EUROS);;;{str(latest_balance).replace('.', ',')}\n")
-        # Line 6: Empty
-        f.write(";;;\n")
-        # Line 7: Header
-        f.write("Date;Libellé;Montant(EUROS)\n")
-        
-        # Write transactions
-        for date in sorted_dates:
-            for tx_tuple in sorted(date_registry[date]['transactions']):
-                f.write(f"{date};{tx_tuple[0]};{tx_tuple[1]}\n")
+    try:
+        with open(fusion_path, mode='w', encoding='utf-8-sig', newline='') as f:
+            # Reconstruct a header compatible with read_bank_csv
+            f.write(";;;\n;;;\n;;;\n;;;\n")
+            # Line 5: Balance
+            f.write(f"Solde (EUROS);;;{str(latest_balance).replace('.', ',')}\n")
+            # Line 6: Empty
+            f.write(";;;\n")
+            # Line 7: Header
+            f.write("Date;Libellé;Montant(EUROS)\n")
+            
+            # Write transactions
+            for date in sorted_dates:
+                for tx_tuple in sorted(date_registry[date]['transactions']):
+                    f.write(f"{date};{tx_tuple[0]};{tx_tuple[1]}\n")
+    except PermissionError:
+        print(f"\nERREUR : Impossible d'écrire dans '{fusion_path}'.")
+        print("Veuillez vous assurer que le fichier n'est pas ouvert dans Excel ou un autre programme.")
+        return None
     
     return fusion_path
 
@@ -169,7 +185,7 @@ def read_bank_csv(file_path):
 
     current_balance = 0.0
 
-    with open(file_path, mode='r', encoding='latin-1') as f:
+    with open(file_path, mode='r', encoding='utf-8-sig') as f:
         # Read the first few lines to extract balance (line 5)
         lines = f.readlines()
         if len(lines) < 5:
@@ -183,14 +199,14 @@ def read_bank_csv(file_path):
                 current_balance = float(balance_str)
             except ValueError:
                 current_balance = 0.0
-            print(f"Opening Balance from header: {current_balance:.2f} EUROS")
+            print(f"Solde initial (depuis l'en-tête) : {current_balance:.2f} EUROS")
             print("-" * 30)
 
     # Dictionary to store monthly totals
     monthly_totals = defaultdict(float)
 
-    # Re-open for DictReader
-    with open(file_path, mode='r', encoding='latin-1') as f:
+    # Ré-ouverture pour DictReader
+    with open(file_path, mode='r', encoding='utf-8-sig') as f:
         # Skip metadata header (first 6 lines)
         for _ in range(6):
             next(f)
@@ -225,9 +241,9 @@ def read_bank_csv(file_path):
             transactions.append(transaction)
             monthly_totals[month_key] += amount
 
-    # Print summary by month
-    print("\nMonthly Summary:")
-    print(f"{'Month':<10} | {'Total Change':>15} | {'Balance at End':>15}")
+    # Afficher la synthèse par mois
+    print("\nSynthèse Mensuelle :")
+    print(f"{'Mois':<10} | {'Evolution':>15} | {'Solde Final':>15}")
     print("-" * 46)
     
     current_running_balance = current_balance
@@ -252,7 +268,7 @@ def read_bank_csv(file_path):
 if __name__ == "__main__":
     fusion_file = merge_csv_files()
     if fusion_file:
-        print(f"Fusion complete. Processing {fusion_file}...")
+        print(f"Fusion terminée. Traitement de {fusion_file}...")
         read_bank_csv(fusion_file)
     else:
-        print("Error: Could not create fusion file.")
+        print("Erreur : Impossible de créer le fichier de fusion.")
