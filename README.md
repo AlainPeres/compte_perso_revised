@@ -11,10 +11,11 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
 - **Support des Accents** : Gestion native du format UTF-8 (BOM) pour une compatibilité parfaite entre les exports bancaires et Excel.
 - **Robustesse** : Gestion des erreurs de permission si le fichier Excel est déjà ouvert.
 - **Statistiques et Catégorisation** : Extrait automatiquement les catégories et génère un onglet **Statistiques** avec les totaux (Débit, Crédit, Net) et les **moyennes mensuelles** par poste.
+  - **Mois Complets** : La moyenne n'est calculée que sur les mois "complets" (mois ayant un successeur dans l'export) pour éviter de fausser les moyennes par des mois partiels (début/fin d'export).
 - **Export Excel** : Génère un fichier `.xlsx` avec :
   - Un onglet **Synthèse** pour le suivi du solde.
-  - Un onglet **Statistiques** pour l'analyse des catégories.
-  - Un onglet par mois pour le détail exhaustif des transactions (incluant la catégorie).
+  - Un onglet **Statistiques** pour l'analyse des catégories (avec note explicative sur les mois inclus).
+  - Un onglet par mois pour le détail exhaustif des transactions.
 
 ## Installation
 
@@ -22,16 +23,16 @@ Ce projet utilise [uv](https://github.com/astral-sh/uv) pour la gestion des dép
 
 1. Installez `uv` si ce n'est pas déjà fait.
 2. Clonez le dépôt ou copiez les fichiers.
-3. Installez les dépendances : `uv sync`
+3. Synchronisez l'environnement : `uv sync`
 
 ## Utilisation
 
-Placez vos fichiers CSV (relevés bancaires) dans le dossier défini par `DATA_DIR` dans le script (par défaut : `D:\Documents\formalités\compte perso`).
+Placez vos fichiers CSV dans le dossier `DATA_DIR` (par défaut : `D:\Documents\formalités\compte perso`).
 
 Lancez le script de fusion et traitement :
 
 ```bash
-uv run python read_csv_1.py
+uv run read_csv_1.py
 ```
 
 ### Format du CSV attendu

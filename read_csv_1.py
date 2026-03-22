@@ -54,18 +54,35 @@ def export_to_excel(transactions, monthly_summary, output_file):
         cell.font = Font(bold=True)
         cell.alignment = Alignment(horizontal="center")
         
-    # Calculer le nombre de mois uniques pour les moyennes
-    months_covered = len(set(tx['Month'] for tx in transactions))
-    if months_covered == 0: months_covered = 1 # Avoid division by zero
+    # Identifier les mois complets pour les moyennes
+    # Un mois est considéré comme "complet" s'il y a des transactions dans un mois postérieur
+    # Cela garantit que le mois est terminé et entièrement couvert par l'export
+    all_months = sorted(set(tx['Month'] for tx in transactions))
+    full_months = [m for m in all_months if any(other > m for other in all_months)]
     
+    # Exception : si c'est le seul mois et qu'il semble complet (non implémenté ici car risqué)
+    # On se base sur le fait qu'un export s'arrête souvent en cours de mois.
+    
+    months_covered = len(full_months)
+    if months_covered == 0: 
+        months_covered = 1 # Fallback au cas où aucun mois n'est "complet" (ex: export d'un seul mois partiel)
+        stats_note = f"Moyennes calculées sur le seul mois disponible ({all_months[0]})"
+    else:
+        stats_note = f"Moyennes mensuelles calculées sur {months_covered} mois complets : {', '.join(full_months)}"
+
+    ws_stats.append([stats_note])
+    ws_stats.append([]) # Ligne vide
+
     cat_stats = defaultdict(lambda: {'debit': 0.0, 'credit': 0.0})
+    # On ne prend que les transactions des mois complets pour les statistiques de moyennes
     for tx in transactions:
-        cat = tx.get('Categorie', 'Divers')
-        amt = tx['Montant']
-        if amt < 0:
-            cat_stats[cat]['debit'] += abs(amt)
-        else:
-            cat_stats[cat]['credit'] += amt
+        if tx['Month'] in full_months:
+            cat = tx.get('Categorie', 'Divers')
+            amt = tx['Montant']
+            if amt < 0:
+                cat_stats[cat]['debit'] += abs(amt)
+            else:
+                cat_stats[cat]['credit'] += amt
             
     for cat in sorted(cat_stats.keys()):
         debit = cat_stats[cat]['debit']
@@ -82,7 +99,8 @@ def export_to_excel(transactions, monthly_summary, output_file):
         ])
         
     # Format stats columns
-    for row in ws_stats.iter_rows(min_row=2, max_col=7):
+    # Adjust for the new note and empty line at the top
+    for row in ws_stats.iter_rows(min_row=4, max_col=7):
         for cell in row[1:]:
             cell.number_format = '#,##0.00'
             
