@@ -10,11 +10,12 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
 - **Synthèse Mensuelle** : Regroupe les transactions par mois et calcule l'évolution du solde.
 - **Support des Accents** : Gestion native du format UTF-8 (BOM) pour une compatibilité parfaite entre les exports bancaires et Excel.
 - **Robustesse** : Gestion des erreurs de permission si le fichier Excel est déjà ouvert.
-- **Statistiques et Catégorisation** : Extrait automatiquement les catégories et génère un onglet **Statistiques** avec les totaux (Débit, Crédit, Net) et les **moyennes mensuelles** par poste.
-  - **Mois Complets** : La moyenne n'est calculée que sur les mois "complets" (mois ayant un successeur dans l'export) pour éviter de fausser les moyennes par des mois partiels (début/fin d'export).
+- **Statistiques et Catégorisation** : Extrait automatiquement les catégories et génère un onglet **Statistiques** sous forme de **matrice Postes × Mois**.
+  - Chaque ligne correspond à un poste de dépense, chaque colonne à un mois.
+  - Une colonne **Moyenne mensuelle** est calculée uniquement sur les **mois complets** (mois ayant un successeur dans l'export) pour éviter les biais de début/fin d'export.
 - **Export Excel** : Génère un fichier `.xlsx` avec :
-  - Un onglet **Synthèse** pour le suivi du solde.
-  - Un onglet **Statistiques** pour l'analyse des catégories (avec note explicative sur les mois inclus).
+  - Un onglet **Synthèse** pour le suivi du solde mensuel.
+  - Un onglet **Statistiques** (matrice Postes × Mois + Moyenne) calqué sur le format de `compte_commun.xlsx`.
   - Un onglet par mois pour le détail exhaustif des transactions.
 
 ## Installation

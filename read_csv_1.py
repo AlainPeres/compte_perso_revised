@@ -47,66 +47,69 @@ def export_to_excel(transactions, monthly_summary, output_file):
 
     # --- Onglet Statistiques ---
     ws_stats = wb.create_sheet(title="Statistiques")
-    ws_stats.append(["Catégorie", "Total Débit", "Total Crédit", "Solde Net", "Moyenne Mens. Débit", "Moyenne Mens. Crédit", "Moyenne Mens. Net"])
     
-    # Style headers
-    for cell in ws_stats[1]:
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(horizontal="center")
-        
-    # Identifier les mois complets pour les moyennes
-    # Un mois est considéré comme "complet" s'il y a des transactions dans un mois postérieur
-    # Cela garantit que le mois est terminé et entièrement couvert par l'export
+    # 1. Préparer les données
     all_months = sorted(set(tx['Month'] for tx in transactions))
+    all_categories = sorted(set(tx.get('Categorie', 'Divers') for tx in transactions))
+    
+    # Identifier les mois complets pour les moyennes
     full_months = [m for m in all_months if any(other > m for other in all_months)]
-    
-    # Exception : si c'est le seul mois et qu'il semble complet (non implémenté ici car risqué)
-    # On se base sur le fait qu'un export s'arrête souvent en cours de mois.
-    
     months_covered = len(full_months)
-    if months_covered == 0: 
-        months_covered = 1 # Fallback au cas où aucun mois n'est "complet" (ex: export d'un seul mois partiel)
+    
+    if months_covered == 0:
+        months_covered = 1
         stats_note = f"Moyennes calculées sur le seul mois disponible ({all_months[0]})"
     else:
         stats_note = f"Moyennes mensuelles calculées sur {months_covered} mois complets : {', '.join(full_months)}"
 
-    ws_stats.append([stats_note])
-    ws_stats.append([]) # Ligne vide
+    # 2. En-têtes (Catégorie | Mois1 | Mois2 | ... | Moyenne)
+    headers = ["Poste de dépense"] + all_months + [f"Moyenne ({months_covered} mois)"]
+    ws_stats.append(headers)
+    
+    # Style en-têtes
+    for cell in ws_stats[1]:
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
 
-    cat_stats = defaultdict(lambda: {'debit': 0.0, 'credit': 0.0})
-    # On ne prend que les transactions des mois complets pour les statistiques de moyennes
+    # 3. Calculs des totaux par (catégorie, mois)
+    # Données : cat_month_data[category][month] = total_amount
+    cat_month_data = defaultdict(lambda: defaultdict(float))
     for tx in transactions:
-        if tx['Month'] in full_months:
-            cat = tx.get('Categorie', 'Divers')
-            amt = tx['Montant']
-            if amt < 0:
-                cat_stats[cat]['debit'] += abs(amt)
-            else:
-                cat_stats[cat]['credit'] += amt
-            
-    for cat in sorted(cat_stats.keys()):
-        debit = cat_stats[cat]['debit']
-        credit = cat_stats[cat]['credit']
-        net = credit - debit
-        ws_stats.append([
-            cat, 
-            debit, 
-            credit, 
-            net,
-            debit / months_covered,
-            credit / months_covered,
-            net / months_covered
-        ])
+        cat = tx.get('Categorie', 'Divers')
+        month = tx['Month']
+        cat_month_data[cat][month] += tx['Montant']
+
+    # 4. Remplir les lignes
+    for cat in all_categories:
+        row = [cat]
+        sum_full_months = 0.0
         
-    # Format stats columns
-    # Adjust for the new note and empty line at the top
-    for row in ws_stats.iter_rows(min_row=4, max_col=7):
-        for cell in row[1:]:
+        for month in all_months:
+            amount = cat_month_data[cat][month]
+            row.append(amount)
+            if month in full_months:
+                sum_full_months += amount
+        
+        # Ajouter la moyenne
+        row.append(sum_full_months / months_covered)
+        ws_stats.append(row)
+
+    # 5. Note explicative en bas
+    ws_stats.append([])
+    ws_stats.append([stats_note])
+
+    # 6. Formatage
+    # Nombre de colonnes : 1 (cat) + len(all_months) + 1 (moyenne)
+    num_cols = len(all_months) + 2
+    # Adjust format for numbers only (skip cat name in col A)
+    for row in ws_stats.iter_rows(min_row=2, max_row=len(all_categories) + 1, min_col=2, max_col=num_cols):
+        for cell in row:
             cell.number_format = '#,##0.00'
             
     ws_stats.column_dimensions['A'].width = 30
-    for col in ['B', 'C', 'D', 'E', 'F', 'G']:
-        ws_stats.column_dimensions[col].width = 18
+    for i in range(2, num_cols + 1):
+        col_letter = ws_stats.cell(row=1, column=i).column_letter
+        ws_stats.column_dimensions[col_letter].width = 15
 
     # --- Onglets Mensuels ---
     # Group transactions for easier sheet creation
