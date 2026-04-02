@@ -2,6 +2,7 @@
 from collections import defaultdict
 import csv
 import os
+from datetime import date
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 
@@ -53,7 +54,8 @@ def export_to_excel(transactions, monthly_summary, output_file):
     all_categories = sorted(set(tx.get('Categorie', 'Divers') for tx in transactions))
     
     # Identifier les mois complets pour les moyennes
-    full_months = [m for m in all_months if any(other > m for other in all_months)]
+    current_month = date.today().strftime("%Y-%m")
+    full_months = [m for m in all_months if m < current_month]
     months_covered = len(full_months)
     
     if months_covered == 0:
