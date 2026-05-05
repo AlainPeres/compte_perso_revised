@@ -33,7 +33,7 @@ Placez vos fichiers CSV dans le dossier `DATA_DIR` (par défaut : `D:\Documents\
 Lancez le script de fusion et traitement :
 
 ```bash
-uv run read_csv_1.py
+uv run read_csv.py
 ```
 
 ### Format du CSV attendu
@@ -44,7 +44,7 @@ Le script est optimisé pour les exports bancaires récents :
 
 ## Structure du Projet
 
-- `read_csv_1.py` : Script principal de fusion et d'analyse.
+- `read_csv.py` : Script principal de fusion et d'analyse.
 - `pyproject.toml` : Configuration des dépendances (`openpyxl`).
 - `fusion.csv` : Fichier intermédiaire regroupant toutes les données dédoublonnées.
 - `compte_perso.xlsx` : Fichier Excel final généré.
