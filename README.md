@@ -7,16 +7,17 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
 - **Fusion Intelligente (`read_csv_1.py`)** : Combine plusieurs relevés CSV en un seul fichier `fusion.csv`.
   - **Concaténation des Libellés** : Récupère l'intégralité des informations de l'opération (Type, Libellé détaillé, Catégorie, Nature) pour ne perdre aucune donnée.
   - **Gestion des Doublons** : En cas de chevauchement, les données du fichier le plus récent sont prioritaires.
-- **Synthèse Mensuelle** : Regroupe les transactions par mois et calcule l'évolution du solde.
+- **Mois complets uniquement** : Seuls les mois entièrement écoulés sont traités — le mois en cours est exclu de la synthèse, des statistiques et des onglets mensuels. Le solde affiché est celui à la fin du dernier mois complet.
+- **Synthèse Mensuelle** : Regroupe les transactions par mois complet et calcule l'évolution du solde. La première colonne est intitulée **Mois complet**.
 - **Support des Accents** : Gestion native du format UTF-8 (BOM) pour une compatibilité parfaite entre les exports bancaires et Excel.
 - **Robustesse** : Gestion des erreurs de permission si le fichier Excel est déjà ouvert.
 - **Statistiques et Catégorisation** : Extrait automatiquement les catégories et génère un onglet **Statistiques** sous forme de **matrice Postes × Mois**.
-  - Chaque ligne correspond à un poste de dépense, chaque colonne à un mois.
-  - Une colonne **Moyenne mensuelle** est calculée uniquement sur les **mois complets** (mois ayant un successeur dans l'export) pour éviter les biais de début/fin d'export.
+  - Chaque ligne correspond à un poste de dépense, chaque colonne à un mois complet.
+  - Une colonne **Moyenne mensuelle** est calculée sur l'ensemble des mois affichés, tous complets.
 - **Export Excel** : Génère un fichier `.xlsx` avec :
-  - Un onglet **Synthèse** pour le suivi du solde mensuel.
-  - Un onglet **Statistiques** (matrice Postes × Mois + Moyenne) calqué sur le format de `compte_commun.xlsx`.
-  - Un onglet par mois pour le détail exhaustif des transactions.
+  - Un onglet **Synthèse** pour le suivi du solde par mois complet.
+  - Un onglet **Statistiques** (matrice Postes × Mois + Moyenne).
+  - Un onglet par mois complet pour le détail exhaustif des transactions.
 
 ## Installation
 
@@ -37,7 +38,9 @@ uv run read_csv.py
 ```
 
 ### Format du CSV attendu
+
 Le script est optimisé pour les exports bancaires récents :
+
 - **Séparateur** : `;`
 - **Encodage** : `utf-8-sig` (supporté nativement pour les accents).
 - **Structure** : Le script extrait automatiquement la date, le montant et toutes les colonnes de description disponibles.

@@ -30,7 +30,7 @@ def export_to_excel(transactions, monthly_summary, output_file):
     ws_summary = wb.active
     ws_summary.title = "Synthèse"
     
-    headers = ["Mois", "Evolution Totale", "Solde Final"]
+    headers = ["Mois complet", "Evolution Totale", "Solde Final"]
     ws_summary.append(headers)
     
     # Style headers
@@ -325,15 +325,21 @@ def read_bank_csv(file_path):
             transactions.append(transaction)
             monthly_totals[month_key] += amount
 
+    # Filtrer pour ne garder que les mois complets (exclure le mois en cours)
+    current_month = date.today().strftime("%Y-%m")
+    current_month_total = monthly_totals.get(current_month, 0.0)
+    full_transactions = [tx for tx in transactions if tx['Month'] < current_month]
+
     # Afficher la synthèse par mois
-    print("\nSynthèse Mensuelle :")
-    print(f"{'Mois':<10} | {'Evolution':>15} | {'Solde Final':>15}")
-    print("-" * 46)
-    
-    current_running_balance = current_balance
-    sorted_months = sorted(monthly_totals.keys(), reverse=True)
+    print("\nSynthèse Mensuelle (mois complets) :")
+    print(f"{'Mois complet':<12} | {'Evolution':>15} | {'Solde Final':>15}")
+    print("-" * 48)
+
+    # Ajuster le solde en soustrayant les transactions du mois en cours
+    current_running_balance = current_balance - current_month_total
+    sorted_months = sorted([m for m in monthly_totals.keys() if m < current_month], reverse=True)
     summary_rows = []
-    
+
     for month in sorted_months:
         total_change = monthly_totals[month]
         balance_at_end = current_running_balance
@@ -341,11 +347,11 @@ def read_bank_csv(file_path):
         current_running_balance -= total_change
 
     for month, total_change, balance_at_end in summary_rows:
-        print(f"{month:<10} | {total_change:>15.2f} | {balance_at_end:>15.2f}")
+        print(f"{month:<12} | {total_change:>15.2f} | {balance_at_end:>15.2f}")
 
     # Export to Excel
     output_excel = os.path.join(DATA_DIR, "compte_perso.xlsx")
-    export_to_excel(transactions, summary_rows, output_excel)
+    export_to_excel(full_transactions, summary_rows, output_excel)
 
     return transactions, monthly_totals
 
