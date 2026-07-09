@@ -4,7 +4,7 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
 
 ## Fonctionnalités
 
-- **Fusion Intelligente (`read_csv_1.py`)** : Combine plusieurs relevés CSV en un seul fichier `fusion.csv`.
+- **Fusion Intelligente (`read_csv.py`)** : Combine plusieurs relevés CSV en un seul fichier `fusion.csv`.
   - **Concaténation des Libellés** : Récupère l'intégralité des informations de l'opération (Type, Libellé détaillé, Catégorie, Nature) pour ne perdre aucune donnée.
   - **Gestion des Doublons** : En cas de chevauchement, les données du fichier le plus récent sont prioritaires.
 - **Mois complets uniquement** : Seuls les mois entièrement écoulés sont traités — le mois en cours est exclu de la synthèse, des statistiques et des onglets mensuels. Le solde affiché est celui à la fin du dernier mois complet.
@@ -13,7 +13,10 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
 - **Robustesse** : Gestion des erreurs de permission si le fichier Excel est déjà ouvert.
 - **Statistiques et Catégorisation** : Extrait automatiquement les catégories et génère un onglet **Statistiques** sous forme de **matrice Postes × Mois**.
   - Chaque ligne correspond à un poste de dépense, chaque colonne à un mois complet.
-  - Une colonne **Moyenne mensuelle** est calculée sur l'ensemble des mois affichés, tous complets.
+  - Une colonne **Moyenne mensuelle** est calculée sur les **6 derniers mois complets** (ou moins si l'historique est plus court).
+  - Certains libellés sont regroupés dans des rubriques dédiées quel que soit le découpage du libellé bancaire :
+    - **Retraite** : libellés contenant `AGIRC`, `HUMANIS` ou `CNAVTS`.
+    - **Téléphone** : libellés contenant `SFR` ou `FREE`.
 - **Export Excel** : Génère un fichier `.xlsx` avec :
   - Un onglet **Synthèse** pour le suivi du solde par mois complet.
   - Un onglet **Statistiques** (matrice Postes × Mois + Moyenne).

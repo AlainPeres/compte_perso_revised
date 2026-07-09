@@ -12,13 +12,19 @@ DATA_DIR = r"D:\Documents\formalités\compte perso"
 def get_category(label_parts):
     """
     Extracts a category from label parts.
-    Strategy: 
+    Strategy:
+    - If a part mentions AGIRC, HUMANIS or CNAVTS, force the category to "Retraite".
+    - If a part mentions SFR or FREE, force the category to "Téléphone".
     - If there are 4+ parts (Type - Label - Code - Cat), the last one is the category.
     - If there are 3 parts (Type - Label - Cat), the last one is the category.
     - Otherwise, use the Type (first part) as category.
     """
     if not label_parts:
         return "Divers"
+    if any(kw in p.upper() for p in label_parts for kw in ("AGIRC", "HUMANIS", "CNAVTS")):
+        return "Retraite"
+    if any(kw in p.upper() for p in label_parts for kw in ("SFR", "FREE")):
+        return "Téléphone"
     if len(label_parts) >= 3:
         return label_parts[-1]
     return label_parts[0]
@@ -53,9 +59,9 @@ def export_to_excel(transactions, monthly_summary, output_file):
     all_months = sorted(set(tx['Month'] for tx in transactions))
     all_categories = sorted(set(tx.get('Categorie', 'Divers') for tx in transactions))
     
-    # Identifier les mois complets pour les moyennes
+    # Identifier les mois complets pour les moyennes (6 derniers mois complets max)
     current_month = date.today().strftime("%Y-%m")
-    full_months = [m for m in all_months if m < current_month]
+    full_months = [m for m in all_months if m < current_month][-6:]
     months_covered = len(full_months)
     
     if months_covered == 0:
