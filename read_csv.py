@@ -92,6 +92,7 @@ def export_to_excel(transactions, monthly_summary, output_file):
         chart = LineChart()
         chart.title = "Solde du compte par mois"
         chart.y_axis.number_format = '#,##0, "k€"'
+        chart.y_axis.scaling.min = 0
         chart.legend = None
 
         # Axes visibles avec échelle et ticks
@@ -102,10 +103,15 @@ def export_to_excel(transactions, monthly_summary, output_file):
         chart.x_axis.majorTickMark = "out"
         chart.y_axis.majorTickMark = "out"
 
-        # Libellés des mois affichés verticalement
+        # Libellés des mois affichés verticalement et en gras
         chart.x_axis.txPr = RichText(
             bodyPr=RichTextProperties(rot=-5400000, vert="horz"),
-            p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties()), endParaRPr=CharacterProperties())]
+            p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(b=True)), endParaRPr=CharacterProperties(b=True))]
+        )
+        # Libellés de l'axe des ordonnées en gras
+        chart.y_axis.txPr = RichText(
+            bodyPr=RichTextProperties(),
+            p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(b=True)), endParaRPr=CharacterProperties(b=True))]
         )
 
         data = Reference(ws_chart, min_col=2, min_row=1, max_row=last_row)

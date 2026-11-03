@@ -12,6 +12,7 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
 - **Graphique du Solde** : Onglet **Graphique** (placé en premier dans le classeur) traçant le solde par mois, en ordre croissant, sans légende ni titres d'axes, avec quadrillage et ticks sur les deux axes, et libellés des mois affichés verticalement.
   - Courbe bleue à épaisseur normale (segments droits, pas de lissage), sans ombre portée.
   - Points de données (marqueurs) ronds et noirs.
+  - Axe des ordonnées débutant à 0 k€, textes des axes (mois et valeurs) en gras.
 - **Support des Accents** : Gestion native du format UTF-8 (BOM) pour une compatibilité parfaite entre les exports bancaires et Excel.
 - **Robustesse** : Gestion des erreurs de permission si le fichier Excel est déjà ouvert.
 - **Statistiques et Catégorisation** : Catégorise automatiquement chaque transaction par mots-clés et génère un onglet **Statistiques** sous forme de **matrice Rubrique × Mois**.
