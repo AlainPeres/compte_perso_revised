@@ -9,25 +9,45 @@ from openpyxl.styles import Font, Alignment
 # Directory containing the CSV bank statements and for the Excel output
 DATA_DIR = r"D:\Documents\formalités\compte perso"
 
-def get_category(label_parts):
+CATEGORIES = {
+    "Retraite": ["AGIRC", "CNAVTS"],
+    "Téléphone": ["SFR", "FREE","BOUYGUES"],
+    "Virement vers CC": ["PERMANENT FOURNIER"],
+    "Alimentation": ["CARREFOUR", "PICARD", "MONOPRIX", "AUCHAN", "LECLERC", "LIDL", "BIOCOOP", "BOULANGERIE"],
+    "Restauration": ["CREPERIE", "RESTAURANT", "CAFE", "DANTON", "MC DO", "BRASSERIE"],
+    "Culture": ["MUSEE", "CINEMA", "THEATRE", "FNAC", "EXPOSITION", "PARIS MUSEES"],
+    "Internet": ["ORANGE"],
+    "Logement": ["EDF", "ENGIE", "EAU", "ASSURANCE", "COPROPRIETE"],
+    "Santé": ["PHARMACIE", "DOCTOLIB", "MEDECIN", "DENTISTE"],
+    "Transports": ["RATP", "SNCF", "TOTAL", "ESSO", "PARKING", "NAVIGO"],
+    "Salaires": ["SALAIRE", "NIRINA"],
+    "Impôts": ["URSSAF", "CESU", "IMPOT", "TRESOR PUBLIC", "FINANCES PUBL"],
+    "Retraits": ["RETRAIT DAB"],
+    "Virements": ["VIREMENT"],
+}
+
+VIREMENT_CC_CATEGORY = "Virement vers CC"
+CHARGES_COPRO_CATEGORY = "Charges copropriété"
+VIREMENT_ENFANTS_CATEGORY = "Virement enfants"
+
+def get_category(libelle, montant=0.0):
     """
-    Extracts a category from label parts.
-    Strategy:
-    - If a part mentions AGIRC, HUMANIS or CNAVTS, force the category to "Retraite".
-    - If a part mentions SFR or FREE, force the category to "Téléphone".
-    - If there are 4+ parts (Type - Label - Code - Cat), the last one is the category.
-    - If there are 3 parts (Type - Label - Cat), the last one is the category.
-    - Otherwise, use the Type (first part) as category.
+    Trouve la catégorie d'une transaction par mots-clés présents dans le libellé.
+    Cas particuliers sous "Virements" : SDC -> charges copro, VITAL -> virement enfants.
     """
-    if not label_parts:
+    if not libelle or not libelle.strip():
         return "Divers"
-    if any(kw in p.upper() for p in label_parts for kw in ("AGIRC", "HUMANIS", "CNAVTS")):
-        return "Retraite"
-    if any(kw in p.upper() for p in label_parts for kw in ("SFR", "FREE")):
-        return "Téléphone"
-    if len(label_parts) >= 3:
-        return label_parts[-1]
-    return label_parts[0]
+    libelle_upper = libelle.upper()
+    for category, keywords in CATEGORIES.items():
+        for keyword in keywords:
+            if keyword in libelle_upper:
+                if category == "Virements":
+                    if "SDC" in libelle_upper:
+                        return CHARGES_COPRO_CATEGORY
+                    if "VITAL" in libelle_upper:
+                        return VIREMENT_ENFANTS_CATEGORY
+                return category
+    return "Divers"
 
 def export_to_excel(transactions, monthly_summary, output_file):
     wb = Workbook()
@@ -70,8 +90,9 @@ def export_to_excel(transactions, monthly_summary, output_file):
     else:
         stats_note = f"Moyennes mensuelles calculées sur {months_covered} mois complets : {', '.join(full_months)}"
 
-    # 2. En-têtes (Catégorie | Mois1 | Mois2 | ... | Moyenne)
-    headers = ["Poste de dépense"] + all_months + [f"Moyenne ({months_covered} mois)"]
+    # 2. En-têtes (Catégorie | Moyenne | Mois les plus récents ... les plus anciens)
+    months_desc = sorted(all_months, reverse=True)
+    headers = ["Poste de dépense", f"Moyenne ({months_covered} mois)"] + months_desc
     ws_stats.append(headers)
     
     # Style en-têtes
@@ -89,17 +110,9 @@ def export_to_excel(transactions, monthly_summary, output_file):
 
     # 4. Remplir les lignes
     for cat in all_categories:
-        row = [cat]
-        sum_full_months = 0.0
-        
-        for month in all_months:
-            amount = cat_month_data[cat][month]
-            row.append(amount)
-            if month in full_months:
-                sum_full_months += amount
-        
-        # Ajouter la moyenne
-        row.append(sum_full_months / months_covered)
+        sum_full_months = sum(cat_month_data[cat][m] for m in full_months)
+        row = [cat, sum_full_months / months_covered]
+        row.extend(cat_month_data[cat][m] for m in months_desc)
         ws_stats.append(row)
 
     # 5. Note explicative en bas
@@ -325,7 +338,7 @@ def read_bank_csv(file_path):
                 'Date': date_str,
                 'Month': month_key,
                 'Libelle': row.get('Libellé'),
-                'Categorie': get_category(row.get('Libellé', '').split(' - ')),
+                'Categorie': get_category(row.get('Libellé', ''), amount),
                 'Montant': amount
             }
             transactions.append(transaction)

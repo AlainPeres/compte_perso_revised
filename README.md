@@ -11,12 +11,16 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
 - **Synthèse Mensuelle** : Regroupe les transactions par mois complet et calcule l'évolution du solde. La première colonne est intitulée **Mois complet**.
 - **Support des Accents** : Gestion native du format UTF-8 (BOM) pour une compatibilité parfaite entre les exports bancaires et Excel.
 - **Robustesse** : Gestion des erreurs de permission si le fichier Excel est déjà ouvert.
-- **Statistiques et Catégorisation** : Extrait automatiquement les catégories et génère un onglet **Statistiques** sous forme de **matrice Postes × Mois**.
-  - Chaque ligne correspond à un poste de dépense, chaque colonne à un mois complet.
-  - Une colonne **Moyenne mensuelle** est calculée sur les **6 derniers mois complets** (ou moins si l'historique est plus court).
-  - Certains libellés sont regroupés dans des rubriques dédiées quel que soit le découpage du libellé bancaire :
-    - **Retraite** : libellés contenant `AGIRC`, `HUMANIS` ou `CNAVTS`.
-    - **Téléphone** : libellés contenant `SFR` ou `FREE`.
+- **Statistiques et Catégorisation** : Catégorise automatiquement chaque transaction par mots-clés et génère un onglet **Statistiques** sous forme de **matrice Rubrique × Mois**.
+  - Chaque ligne correspond à un poste de dépense. Les colonnes sont ordonnées : **Poste de dépense**, puis **Moyenne**, puis les mois du plus récent au plus ancien.
+  - La **Moyenne** est calculée sur les **6 derniers mois complets** (ou moins si l'historique est plus court).
+  - La catégorisation repose sur un dictionnaire `CATEGORIES` (dans `read_csv.py`) qui associe une rubrique à une liste de mots-clés recherchés dans le libellé. Les rubriques spécifiques sont vérifiées avant les rubriques génériques :
+    - **Retraite** : `AGIRC`, `CNAVTS`.
+    - **Téléphone** : `SFR`, `FREE`, `BOUYGUES`.
+    - **Virement vers CC** : `PERMANENT FOURNIER`.
+    - **Alimentation**, **Restauration**, **Culture**, **Internet**, **Logement**, **Santé**, **Transports**, **Salaires**, **Impôts**, **Retraits** : chacune sa propre liste de mots-clés (voir `CATEGORIES`).
+    - **Virements** (générique) : tout libellé contenant `VIREMENT` non capté par une règle plus spécifique, avec deux sous-cas : `SDC` → Charges copropriété, `VITAL` → Virement enfants.
+    - Si aucun mot-clé ne correspond (ou libellé vide) : **Divers**.
 - **Export Excel** : Génère un fichier `.xlsx` avec :
   - Un onglet **Synthèse** pour le suivi du solde par mois complet.
   - Un onglet **Statistiques** (matrice Postes × Mois + Moyenne).
