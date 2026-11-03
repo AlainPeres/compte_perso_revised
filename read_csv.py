@@ -36,7 +36,7 @@ def get_category(libelle, montant=0.0):
     Cas particuliers sous "Virements" : SDC -> charges copro, VITAL -> virement enfants.
     """
     if not libelle or not libelle.strip():
-        return "Divers"
+        return "Autre"
     libelle_upper = libelle.upper()
     for category, keywords in CATEGORIES.items():
         for keyword in keywords:
@@ -47,7 +47,7 @@ def get_category(libelle, montant=0.0):
                     if "VITAL" in libelle_upper:
                         return VIREMENT_ENFANTS_CATEGORY
                 return category
-    return "Divers"
+    return "Autre"
 
 def export_to_excel(transactions, monthly_summary, output_file):
     wb = Workbook()
@@ -77,7 +77,7 @@ def export_to_excel(transactions, monthly_summary, output_file):
     
     # 1. Préparer les données
     all_months = sorted(set(tx['Month'] for tx in transactions))
-    all_categories = sorted(set(tx.get('Categorie', 'Divers') for tx in transactions))
+    all_categories = sorted(set(tx.get('Categorie', 'Autre') for tx in transactions))
     
     # Identifier les mois complets pour les moyennes (6 derniers mois complets max)
     current_month = date.today().strftime("%Y-%m")
@@ -104,7 +104,7 @@ def export_to_excel(transactions, monthly_summary, output_file):
     # Données : cat_month_data[category][month] = total_amount
     cat_month_data = defaultdict(lambda: defaultdict(float))
     for tx in transactions:
-        cat = tx.get('Categorie', 'Divers')
+        cat = tx.get('Categorie', 'Autre')
         month = tx['Month']
         cat_month_data[cat][month] += tx['Montant']
 

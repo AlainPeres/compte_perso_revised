@@ -20,10 +20,10 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
     - **Virement vers CC** : `PERMANENT FOURNIER`.
     - **Alimentation**, **Restauration**, **Culture**, **Internet**, **Logement**, **Santé**, **Transports**, **Salaires**, **Impôts**, **Retraits** : chacune sa propre liste de mots-clés (voir `CATEGORIES`).
     - **Virements** (générique) : tout libellé contenant `VIREMENT` non capté par une règle plus spécifique, avec deux sous-cas : `SDC` → Charges copropriété, `VITAL` → Virement enfants.
-    - Si aucun mot-clé ne correspond (ou libellé vide) : **Divers**.
+    - Si aucun mot-clé ne correspond (ou libellé vide) : **Autre**.
 - **Export Excel** : Génère un fichier `.xlsx` avec :
   - Un onglet **Synthèse** pour le suivi du solde par mois complet.
-  - Un onglet **Statistiques** (matrice Postes × Mois + Moyenne).
+  - Un onglet **Statistiques** (matrice Rubrique × Mois + Moyenne).
   - Un onglet par mois complet pour le détail exhaustif des transactions.
 
 ## Installation
