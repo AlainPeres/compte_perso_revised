@@ -9,6 +9,9 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
   - **Gestion des Doublons** : En cas de chevauchement, les données du fichier le plus récent sont prioritaires.
 - **Mois complets uniquement** : Seuls les mois entièrement écoulés sont traités — le mois en cours est exclu de la synthèse, des statistiques et des onglets mensuels. Le solde affiché est celui à la fin du dernier mois complet.
 - **Synthèse Mensuelle** : Regroupe les transactions par mois complet et calcule l'évolution du solde. La première colonne est intitulée **Mois complet**.
+- **Graphique du Solde** : Onglet **Graphique** (placé en premier dans le classeur) traçant le solde par mois, en ordre croissant, sans légende ni titres d'axes, avec quadrillage et ticks sur les deux axes, et libellés des mois affichés verticalement.
+  - Courbe bleue à épaisseur normale (segments droits, pas de lissage), sans ombre portée.
+  - Points de données (marqueurs) ronds et noirs.
 - **Support des Accents** : Gestion native du format UTF-8 (BOM) pour une compatibilité parfaite entre les exports bancaires et Excel.
 - **Robustesse** : Gestion des erreurs de permission si le fichier Excel est déjà ouvert.
 - **Statistiques et Catégorisation** : Catégorise automatiquement chaque transaction par mots-clés et génère un onglet **Statistiques** sous forme de **matrice Rubrique × Mois**.
@@ -22,6 +25,7 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
     - **Virements** (générique) : tout libellé contenant `VIREMENT` non capté par une règle plus spécifique, avec deux sous-cas : `SDC` → Charges copropriété, `VITAL` → Virement enfants.
     - Si aucun mot-clé ne correspond (ou libellé vide) : **Autre**.
 - **Export Excel** : Génère un fichier `.xlsx` avec :
+  - Un onglet **Graphique** (premier onglet) avec la courbe du solde par mois.
   - Un onglet **Synthèse** pour le suivi du solde par mois complet.
   - Un onglet **Statistiques** (matrice Rubrique × Mois + Moyenne).
   - Un onglet par mois complet pour le détail exhaustif des transactions.

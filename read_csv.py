@@ -5,6 +5,13 @@ import os
 from datetime import date
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
+from openpyxl.chart import LineChart, Reference
+from openpyxl.chart.axis import ChartLines
+from openpyxl.chart.text import RichText
+from openpyxl.chart.marker import Marker
+from openpyxl.chart.shapes import GraphicalProperties
+from openpyxl.drawing.text import Paragraph, ParagraphProperties, CharacterProperties, RichTextProperties
+from openpyxl.drawing.line import LineProperties
 
 # Directory containing the CSV bank statements and for the Excel output
 DATA_DIR = r"D:\Documents\formalités\compte perso"
@@ -71,6 +78,48 @@ def export_to_excel(transactions, monthly_summary, output_file):
     for row in ws_summary.iter_rows(min_row=2, max_col=3):
         row[1].number_format = '#,##0.00'
         row[2].number_format = '#,##0.00'
+
+    # --- Onglet Graphique (solde par mois, ordre croissant) ---
+    if monthly_summary:
+        ws_chart = wb.create_sheet(title="Graphique")
+        ws_chart.append(["Mois complet", "Solde Final"])
+        for month, _total_change, balance in reversed(monthly_summary):
+            ws_chart.append([month, balance])
+        for row in ws_chart.iter_rows(min_row=2, max_col=2):
+            row[1].number_format = '#,##0.00'
+
+        last_row = 1 + len(monthly_summary)
+        chart = LineChart()
+        chart.title = "Solde du compte par mois"
+        chart.y_axis.number_format = '#,##0, "k€"'
+        chart.legend = None
+
+        # Axes visibles avec échelle et ticks
+        chart.x_axis.delete = False
+        chart.y_axis.delete = False
+        chart.x_axis.majorGridlines = ChartLines()
+        chart.y_axis.majorGridlines = ChartLines()
+        chart.x_axis.majorTickMark = "out"
+        chart.y_axis.majorTickMark = "out"
+
+        # Libellés des mois affichés verticalement
+        chart.x_axis.txPr = RichText(
+            bodyPr=RichTextProperties(rot=-5400000, vert="horz"),
+            p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties()), endParaRPr=CharacterProperties())]
+        )
+
+        data = Reference(ws_chart, min_col=2, min_row=1, max_row=last_row)
+        cats = Reference(ws_chart, min_col=1, min_row=2, max_row=last_row)
+        chart.add_data(data, titles_from_data=True)
+        chart.set_categories(cats)
+        for s in chart.series:
+            s.smooth = False
+            s.graphicalProperties = GraphicalProperties(ln=LineProperties(solidFill="0000FF", w=28575))
+            s.marker = Marker(symbol="circle", size=5)
+            s.marker.graphicalProperties = GraphicalProperties(solidFill="000000", ln=LineProperties(solidFill="000000"))
+
+        ws_chart.add_chart(chart, "D2")
+        wb.move_sheet("Graphique", offset=-wb.sheetnames.index("Graphique"))
 
     # --- Onglet Statistiques ---
     ws_stats = wb.create_sheet(title="Statistiques")
