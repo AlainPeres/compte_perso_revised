@@ -2,6 +2,8 @@
 from collections import defaultdict
 import csv
 import os
+import re
+import time
 from datetime import date
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
@@ -16,17 +18,67 @@ from openpyxl.drawing.line import LineProperties
 # Directory containing the CSV bank statements and for the Excel output
 DATA_DIR = r"D:\Documents\formalités\compte perso"
 
+def close_workbook_if_open(file_path):
+    """
+    Ferme, via Excel (COM), le classeur file_path s'il y est actuellement ouvert,
+    pour permettre au script de l'écraser sans PermissionError.
+    """
+    try:
+        import win32com.client
+    except ImportError:
+        print("pywin32 non disponible : fermeture automatique d'Excel impossible.")
+        return False
+
+    try:
+        excel = win32com.client.GetActiveObject("Excel.Application")
+    except Exception:
+        # Aucune instance Excel active détectée (ou terminal/Excel avec des droits différents).
+        return False
+
+    target = os.path.normcase(os.path.abspath(file_path))
+    closed = False
+    for workbook in list(excel.Workbooks):
+        try:
+            wb_path = os.path.normcase(os.path.abspath(workbook.FullName))
+        except Exception as e:
+            print(f"Impossible de lire le chemin d'un classeur Excel ouvert : {e}")
+            continue
+
+        if wb_path != target:
+            continue
+
+        try:
+            workbook.Close(SaveChanges=False)
+            closed = True
+            print(f"Classeur '{file_path}' fermé automatiquement dans Excel.")
+        except Exception as e:
+            print(f"Impossible de fermer '{file_path}' automatiquement : {e}")
+
+    if closed:
+        time.sleep(0.5)  # laisser Windows relâcher le verrou du fichier
+        try:
+            if excel.Workbooks.Count == 0:
+                excel.Quit()
+                print("Excel quitté (plus aucun classeur ouvert).")
+        except Exception as e:
+            print(f"Impossible de quitter Excel : {e}")
+
+    return closed
+
 CATEGORIES = {
     "Retraite": ["AGIRC", "CNAVTS"],
     "Téléphone": ["SFR", "FREE","BOUYGUES"],
     "Virement vers CC": ["PERMANENT FOURNIER"],
-    "Alimentation": ["CARREFOUR", "PICARD", "MONOPRIX", "AUCHAN", "LECLERC", "LIDL", "BIOCOOP", "BOULANGERIE"],
-    "Restauration": ["CREPERIE", "RESTAURANT", "CAFE", "DANTON", "MC DO", "BRASSERIE"],
+    "Alimentation": ["CARREFOUR", "PICARD", "MONOPRIX", "AUCHAN", "LECLERC", "LIDL", "BIOCOOP", 
+                     "BOULANGERIE","FRANPRIX","INTERMARCHE","CASINO","ALDI","U EXPRESS","MARCHE"],
+    "Restauration": ["CREPERIE", "RESTAURANT", "CAFE", "DANTON", "MC DO", "BRASSERIE","PLAZZA",
+                     "LITHOGRAPHE","BUDDHA"],
     "Culture": ["MUSEE", "CINEMA", "THEATRE", "FNAC", "EXPOSITION", "PARIS MUSEES"],
     "Internet": ["ORANGE"],
     "Logement": ["EDF", "ENGIE", "EAU", "ASSURANCE", "COPROPRIETE"],
-    "Santé": ["PHARMACIE", "DOCTOLIB", "MEDECIN", "DENTISTE"],
-    "Transports": ["RATP", "SNCF", "TOTAL", "ESSO", "PARKING", "NAVIGO"],
+    "Santé": ["PHARMACIE", "DOCTOLIB", "MEDECIN", "DENTISTE","PHIE","LAIZE","QUENTIN"],
+    "Transports": ["RATP", "SNCF","PARKING", "NAVIGO"],
+    "Essence": ["TOTAL", "ESSO", "SHELL", "AVIA", "CARBURANT","BP"],
     "Salaires": ["SALAIRE", "NIRINA"],
     "Impôts": ["URSSAF", "CESU", "IMPOT", "TRESOR PUBLIC", "FINANCES PUBL"],
     "Retraits": ["RETRAIT DAB"],
@@ -37,9 +89,12 @@ VIREMENT_CC_CATEGORY = "Virement vers CC"
 CHARGES_COPRO_CATEGORY = "Charges copropriété"
 VIREMENT_ENFANTS_CATEGORY = "Virement enfants"
 
+def _contains_word(libelle_upper, word):
+    return re.search(r'\b' + re.escape(word) + r'\b', libelle_upper) is not None
+
 def get_category(libelle, montant=0.0):
     """
-    Trouve la catégorie d'une transaction par mots-clés présents dans le libellé.
+    Trouve la catégorie d'une transaction par mots-clés (mot entier) présents dans le libellé.
     Cas particuliers sous "Virements" : SDC -> charges copro, VITAL -> virement enfants.
     """
     if not libelle or not libelle.strip():
@@ -47,11 +102,11 @@ def get_category(libelle, montant=0.0):
     libelle_upper = libelle.upper()
     for category, keywords in CATEGORIES.items():
         for keyword in keywords:
-            if keyword in libelle_upper:
+            if _contains_word(libelle_upper, keyword):
                 if category == "Virements":
-                    if "SDC" in libelle_upper:
+                    if _contains_word(libelle_upper, "SDC"):
                         return CHARGES_COPRO_CATEGORY
-                    if "VITAL" in libelle_upper:
+                    if _contains_word(libelle_upper, "VITAL"):
                         return VIREMENT_ENFANTS_CATEGORY
                 return category
     return "Autre"
@@ -196,23 +251,43 @@ def export_to_excel(transactions, monthly_summary, output_file):
     for month in sorted(by_month.keys(), reverse=True):
         ws = wb.create_sheet(title=month)
         ws.append(["Date", "Catégorie", "Libellé", "Montant"])
-        
+
         # Style headers
         for cell in ws[1]:
             cell.font = Font(bold=True)
-            
+
+        # Regrouper les transactions du mois par catégorie
+        txs_by_cat = defaultdict(list)
         for tx in by_month[month]:
-            ws.append([tx['Date'], tx.get('Categorie', ''), tx['Libelle'], tx['Montant']])
-            
+            txs_by_cat[tx.get('Categorie', 'Autre')].append(tx)
+
+        for cat in sorted(txs_by_cat.keys()):
+            cat_row = ws.max_row + 1
+            ws.append([cat])
+            ws.cell(row=cat_row, column=1).font = Font(bold=True)
+
+            cat_total = 0.0
+            for tx in txs_by_cat[cat]:
+                ws.append([tx['Date'], tx.get('Categorie', ''), tx['Libelle'], tx['Montant']])
+                cat_total += tx['Montant']
+
+            total_row = ws.max_row + 1
+            ws.append(["", "", f"Total {cat}", cat_total])
+            ws.cell(row=total_row, column=3).font = Font(bold=True)
+            ws.cell(row=total_row, column=4).font = Font(bold=True)
+
         # Format amount column
         for row in ws.iter_rows(min_row=2, max_col=4):
             row[3].number_format = '#,##0.00'
-            
+
         # Ajuster les largeurs de colonnes
         ws.column_dimensions['A'].width = 12
         ws.column_dimensions['B'].width = 25
         ws.column_dimensions['C'].width = 50
         ws.column_dimensions['D'].width = 15
+
+    if os.path.exists(output_file):
+        close_workbook_if_open(output_file)
 
     try:
         wb.save(output_file)

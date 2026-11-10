@@ -14,22 +14,24 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
   - Points de données (marqueurs) ronds et noirs.
   - Axe des ordonnées débutant à 0 k€, textes des axes (mois et valeurs) en gras.
 - **Support des Accents** : Gestion native du format UTF-8 (BOM) pour une compatibilité parfaite entre les exports bancaires et Excel.
-- **Robustesse** : Gestion des erreurs de permission si le fichier Excel est déjà ouvert.
+- **Robustesse** :
+  - Gestion des erreurs de permission si le fichier Excel ne peut pas être écrit.
+  - **Fermeture automatique d'Excel** : si `compte_perso.xlsx` est déjà ouvert dans Excel, le script le ferme automatiquement via COM (`pywin32`) avant de régénérer le fichier, puis quitte Excel si plus aucun classeur n'y est ouvert.
 - **Statistiques et Catégorisation** : Catégorise automatiquement chaque transaction par mots-clés et génère un onglet **Statistiques** sous forme de **matrice Rubrique × Mois**.
   - Chaque ligne correspond à un poste de dépense. Les colonnes sont ordonnées : **Poste de dépense**, puis **Moyenne**, puis les mois du plus récent au plus ancien.
   - La **Moyenne** est calculée sur les **6 derniers mois complets** (ou moins si l'historique est plus court).
-  - La catégorisation repose sur un dictionnaire `CATEGORIES` (dans `read_csv.py`) qui associe une rubrique à une liste de mots-clés recherchés dans le libellé. Les rubriques spécifiques sont vérifiées avant les rubriques génériques :
+  - La catégorisation repose sur un dictionnaire `CATEGORIES` (dans `read_csv.py`) qui associe une rubrique à une liste de mots-clés recherchés **en mot entier** dans le libellé (bornes de mot, insensible à la casse), pour éviter les faux positifs type "EAU" détecté dans "SCEAUX". Les rubriques spécifiques sont vérifiées avant les rubriques génériques :
     - **Retraite** : `AGIRC`, `CNAVTS`.
     - **Téléphone** : `SFR`, `FREE`, `BOUYGUES`.
     - **Virement vers CC** : `PERMANENT FOURNIER`.
-    - **Alimentation**, **Restauration**, **Culture**, **Internet**, **Logement**, **Santé**, **Transports**, **Salaires**, **Impôts**, **Retraits** : chacune sa propre liste de mots-clés (voir `CATEGORIES`).
+    - **Alimentation**, **Restauration**, **Culture**, **Internet**, **Logement**, **Santé**, **Transports**, **Essence**, **Salaires**, **Impôts**, **Retraits** : chacune sa propre liste de mots-clés (voir `CATEGORIES`).
     - **Virements** (générique) : tout libellé contenant `VIREMENT` non capté par une règle plus spécifique, avec deux sous-cas : `SDC` → Charges copropriété, `VITAL` → Virement enfants.
     - Si aucun mot-clé ne correspond (ou libellé vide) : **Autre**.
 - **Export Excel** : Génère un fichier `.xlsx` avec :
   - Un onglet **Graphique** (premier onglet) avec la courbe du solde par mois.
   - Un onglet **Synthèse** pour le suivi du solde par mois complet.
   - Un onglet **Statistiques** (matrice Rubrique × Mois + Moyenne).
-  - Un onglet par mois complet pour le détail exhaustif des transactions.
+  - Un onglet par mois complet, avec les transactions regroupées par rubrique (triées par ordre alphabétique) et un sous-total par rubrique.
 
 ## Installation
 
@@ -60,7 +62,7 @@ Le script est optimisé pour les exports bancaires récents :
 ## Structure du Projet
 
 - `read_csv.py` : Script principal de fusion et d'analyse.
-- `pyproject.toml` : Configuration des dépendances (`openpyxl`).
+- `pyproject.toml` : Configuration des dépendances (`openpyxl`, `pywin32`).
 - `fusion.csv` : Fichier intermédiaire regroupant toutes les données dédoublonnées.
 - `compte_perso.xlsx` : Fichier Excel final généré.
 
