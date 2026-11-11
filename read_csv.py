@@ -71,7 +71,7 @@ CATEGORIES = {
     "Virement vers CC": ["PERMANENT FOURNIER"],
     "Alimentation": ["CARREFOUR", "PICARD", "MONOPRIX", "AUCHAN", "LECLERC", "LIDL", "BIOCOOP", 
                      "BOULANGERIE","FRANPRIX","INTERMARCHE","CASINO","ALDI","U EXPRESS","MARCHE"],
-    "Restauration": ["CREPERIE", "RESTAURANT", "CAFE", "DANTON", "MC DO", "BRASSERIE","PLAZZA",
+    "Restauration": ["CREPERIE", "RESTAURANT", "CAFE", "DANTON", "MC DO", "BRASSERIE","PIAZZA",
                      "LITHOGRAPHE","BUDDHA"],
     "Culture": ["MUSEE", "CINEMA", "THEATRE", "FNAC", "EXPOSITION", "PARIS MUSEES"],
     "Internet": ["ORANGE"],
@@ -83,6 +83,7 @@ CATEGORIES = {
     "Impôts": ["URSSAF", "CESU", "IMPOT", "TRESOR PUBLIC", "FINANCES PUBL"],
     "Retraits": ["RETRAIT DAB"],
     "Virements": ["VIREMENT"],
+    "Voyage": ["HOTEL", "AIR FRANCE", "VOYAGE", "TRAVEL", "AIRBNB", "BOOKING","ACCOR"],
 }
 
 VIREMENT_CC_CATEGORY = "Virement vers CC"
