@@ -32,6 +32,7 @@ Ce projet permet d'automatiser le traitement et l'analyse des relevés bancaires
   - Un onglet **Synthèse** pour le suivi du solde par mois complet.
   - Un onglet **Statistiques** (matrice Rubrique × Mois + Moyenne).
   - Un onglet par mois complet, avec les transactions regroupées par rubrique (triées par ordre alphabétique) et un sous-total par rubrique.
+    - Les dépenses (montant négatif) de plus de 200 € en valeur absolue sont affichées en rouge.
 
 ## Installation
 

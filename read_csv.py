@@ -269,8 +269,13 @@ def export_to_excel(transactions, monthly_summary, output_file):
 
             cat_total = 0.0
             for tx in txs_by_cat[cat]:
+                tx_row = ws.max_row + 1
                 ws.append([tx['Date'], tx.get('Categorie', ''), tx['Libelle'], tx['Montant']])
                 cat_total += tx['Montant']
+
+                if tx['Montant'] < 0 and abs(tx['Montant']) > 200:
+                    for cell in ws[tx_row]:
+                        cell.font = Font(color="FF0000")
 
             total_row = ws.max_row + 1
             ws.append(["", "", f"Total {cat}", cat_total])
